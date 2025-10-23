@@ -1,6 +1,7 @@
 import { useAuth } from './contexts/AuthContext';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
+import SignUp from './components/SignUp';
 
 function App() {
   const { user, loading } = useAuth();
@@ -13,7 +14,18 @@ function App() {
     );
   }
 
-  return user ? <Dashboard /> : <Auth />;
+  // Simple routing basé sur l'URL
+  const path = window.location.pathname;
+  
+  if (user) {
+    return <Dashboard />;
+  }
+  
+  if (path === '/signup') {
+    return <SignUp />;
+  }
+  
+  return <Auth />;
 }
 
 export default App;
