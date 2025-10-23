@@ -32,7 +32,6 @@ app.get("/api/test", async (req, res) => {
     res.status(500).send("Erreur serveur");
   }
 });
-
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Backend started on port ${PORT}`));
 
