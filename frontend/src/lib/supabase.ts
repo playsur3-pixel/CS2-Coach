@@ -1,20 +1,22 @@
 // Module supabase.ts (initialisation du client Supabase)
-import { createClient } from '@supabase/supabase-js';
-import { VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } from '../env';
+import { createClient } from "@supabase/supabase-js";
+import { VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } from "../env";
 
 const supabaseUrl = VITE_SUPABASE_URL;
 const supabaseAnonKey = VITE_SUPABASE_ANON_KEY;
 
 if (import.meta.env.DEV) {
-  console.info('[Supabase config]', {
+  console.info("[Supabase config]", {
     supabaseUrl,
-    anonKeyPrefix: supabaseAnonKey?.slice(0, 12) || '(none)',
+    anonKeyPrefix: supabaseAnonKey?.slice(0, 12) || "(none)",
   });
 }
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase env vars missing: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in frontend/.env');
-  throw new Error('Missing Supabase configuration. Check frontend/.env');
+  console.error(
+    "Supabase env vars missing: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in frontend/.env"
+  );
+  throw new Error("Missing Supabase configuration. Check frontend/.env");
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
