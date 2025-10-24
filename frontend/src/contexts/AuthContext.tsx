@@ -27,17 +27,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (async () => {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
-        // Ensure a profiles row exists/updated for the logged-in user
         if (currentUser) {
           try {
             const username = (currentUser.user_metadata as any)?.playerName ?? null;
             const roleMeta = (currentUser.app_metadata as any)?.role || (currentUser.user_metadata as any)?.role || 'player';
-            const accountType = roleMeta; // 'admin' | 'coach' | 'player'
+            const accountType = roleMeta;
             await supabase
               .from('profiles')
               .upsert({ id: currentUser.id, email: currentUser.email, username, account_type: accountType }, { onConflict: 'id' });
           } catch (e) {
-            // Non-blocking: ignore errors if table/policies missing
             console.warn('profiles upsert skipped:', (e as any)?.message ?? e);
           }
         }
@@ -78,7 +76,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signOut({ scope: 'global' });
       if (error) throw error;
     } catch (_) {
-      await supabase.auth.signOut({ scope: 'local' });
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {}
+    } finally {
+      try {
+        const keys = Object.keys(localStorage);
+        for (const k of keys) {
+          if (k.startsWith('sb-') || k.toLowerCase().includes('supabase')) {
+            localStorage.removeItem(k);
+          }
+        }
+      } catch {}
+      setUser(null);
+      window.location.replace('/');
     }
   };
 

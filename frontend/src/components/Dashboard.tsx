@@ -52,19 +52,7 @@ export default function Dashboard() {
           }
         }
       } catch {}
-      try {
-        if (user?.email) {
-          const { data: w } = await supabase
-            .from('Website_Users')
-            .select('account_type')
-            .eq('email', user.email)
-            .limit(1);
-          const accW = w?.[0]?.account_type;
-          if (accW && ['admin', 'coach', 'administrateur', 'entraineur'].includes(String(accW).toLowerCase())) {
-            allowed = true;
-          }
-        }
-      } catch {}
+
       setCanInvite(allowed);
     })();
   }, [role, user?.id, user?.email]);
@@ -195,15 +183,13 @@ export default function Dashboard() {
                   <span>Message</span>
                 </button>
               )}
-              {canInvite && (
-                <button
-                  onClick={() => setShowInviteModal(true)}
-                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition"
-                >
-                  <Mail className="w-4 h-4" />
-                  <span>Invitation par mail</span>
-                </button>
-              )}
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition"
+              >
+                <Mail className="w-4 h-4" />
+                <span>Invitation par mail</span>
+              </button>
               <button
                 onClick={signOut}
                 className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded-md flex items-center gap-2 transition"

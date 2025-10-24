@@ -6,7 +6,10 @@ const supabaseUrl = VITE_SUPABASE_URL;
 const supabaseAnonKey = VITE_SUPABASE_ANON_KEY;
 
 // Évite les erreurs quand import.meta.env n'est pas disponible (en dehors de Vite)
-const isDev = typeof import.meta !== 'undefined' && (import.meta as any)?.env && Boolean((import.meta as any).env.DEV);
+const isDev =
+  typeof import.meta !== "undefined" &&
+  (import.meta as any)?.env &&
+  Boolean((import.meta as any).env.DEV);
 if (isDev) {
   console.info("[Supabase config]", {
     supabaseUrl,

@@ -198,7 +198,7 @@ app.post("/api/invitations/:token/request-renewal", async (req, res) => {
 
     // Notify all admins
     const { data: list } = await supabase.auth.admin.listUsers();
-    const admins = (list?.users || []).filter((u) => (u.app_metadata as any)?.role === 'admin');
+    const admins = (list?.users || []).filter((u) => (u?.app_metadata?.role) === 'admin');
     for (const a of admins) {
       await pool.query(
         `INSERT INTO public.notifications (type, message, recipient_user_id, related_invitation_id)
