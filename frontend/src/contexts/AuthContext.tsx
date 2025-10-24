@@ -31,9 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (currentUser) {
           try {
             const username = (currentUser.user_metadata as any)?.playerName ?? null;
+            const roleMeta = (currentUser.app_metadata as any)?.role || (currentUser.user_metadata as any)?.role || 'player';
+            const accountType = roleMeta; // 'admin' | 'coach' | 'player'
             await supabase
               .from('profiles')
-              .upsert({ id: currentUser.id, email: currentUser.email, username }, { onConflict: 'id' });
+              .upsert({ id: currentUser.id, email: currentUser.email, username, account_type: accountType }, { onConflict: 'id' });
           } catch (e) {
             // Non-blocking: ignore errors if table/policies missing
             console.warn('profiles upsert skipped:', (e as any)?.message ?? e);

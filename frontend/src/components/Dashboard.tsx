@@ -7,6 +7,7 @@ import AddPlayerModal from './AddPlayerModal';
 import ResultsChart from './ResultsChart';
 import EditSessionModal from './EditSessionModal';
 import PlayerPage from './PlayerPage';
+import InvitePlayerModal from './InvitePlayerModal';
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [showAddSession, setShowAddSession] = useState(false);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState<'hs_rate' | 'accuracy' | 'kills' | 'deaths' | 'duration_minutes' | 'kd'>('hs_rate');
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
@@ -22,6 +24,34 @@ export default function Dashboard() {
   const [showPlayerPage, setShowPlayerPage] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const uniqueExercises = Array.from(new Set(sessions.map(s => s.exercise_type).filter(Boolean))) as string[];
+  const role = (user?.app_metadata as any)?.role || (user?.user_metadata as any)?.role || null;
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (role && (role === 'admin' || role === 'coach') && user?.id) {
+      (async () => {
+        try {
+          const res = await fetch(`/api/notifications?recipient=${user.id}`);
+          const json = await res.json();
+          if (res.ok) setNotifications(json || []);
+        } catch {}
+      })();
+    }
+  }, [role, user?.id]);
+
+  async function approveRenewal(invitationId: string) {
+    try {
+      const res = await fetch(`/api/invitations/${invitationId}/approve-renewal`, { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || 'Erreur');
+      alert(`Nouveau lien: ${json.link}`);
+      const res2 = await fetch(`/api/notifications?recipient=${user?.id}`);
+      const json2 = await res2.json();
+      if (res2.ok) setNotifications(json2 || []);
+    } catch (e) {
+      alert(String((e as any)?.message || e));
+    }
+  }
 
   useEffect(() => {
     loadPlayers();
@@ -75,7 +105,6 @@ export default function Dashboard() {
 
   const selectedPlayerData = players.find(p => p.id === selectedPlayer);
 
-  // Si on affiche la page joueur
   if (showPlayerPage && selectedPlayerData) {
     return (
       <PlayerPage 
@@ -169,6 +198,15 @@ export default function Dashboard() {
                 <Plus className="w-5 h-5" />
                 <span>Ajouter un joueur</span>
               </button>
+              {role && (role === 'admin' || role === 'coach') && (
+                <button
+                  onClick={() => setShowInviteModal(true)}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Inviter un joueur</span>
+                </button>
+              )}
             </div>
 
             {selectedPlayer && (
@@ -181,6 +219,25 @@ export default function Dashboard() {
               </button>
             )}
           </div>
+
+          {role && (role === 'admin' || role === 'coach') && notifications.length > 0 && (
+            <div className="mb-8 bg-zinc-950/80 backdrop-blur-xl border-2 border-zinc-800/50 rounded-lg p-4 shadow-xl">
+              <h3 className="text-white font-bold mb-3">Demandes d'invitation</h3>
+              <div className="space-y-3">
+                {notifications.map((n) => (
+                  <div key={n.id} className="flex items-center justify-between bg-zinc-900/60 border border-zinc-800 rounded-md p-3">
+                    <span className="text-zinc-200 text-sm">{n.message}</span>
+                    <div className="flex gap-2">
+                      {n.related_invitation_id && (
+                        <button onClick={() => approveRenewal(n.related_invitation_id)} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white rounded-md text-sm">Accepter</button>
+                      )}
+                      <button className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-md text-sm">Annuler</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {selectedPlayer ? (
             <>
@@ -362,7 +419,6 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Edit session modal */}
       {editSessionId && (
         <EditSessionModal
           sessionId={editSessionId}
@@ -384,7 +440,10 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Message modal */}
+      {showInviteModal && (
+        <InvitePlayerModal onClose={() => setShowInviteModal(false)} />
+      )}
+
       {showMessage && selectedPlayerData && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-zinc-950/90 backdrop-blur-xl border-2 border-zinc-800/50 rounded-lg shadow-2xl shadow-black/50 w-full max-w-md">
