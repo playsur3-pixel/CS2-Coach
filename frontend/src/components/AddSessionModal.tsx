@@ -18,6 +18,7 @@ export default function AddSessionModal({ playerId, onClose, onSuccess }: Props)
     duration_minutes: '',
     notes: '',
     session_date_local: '',
+    exercise_type: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -44,6 +45,7 @@ export default function AddSessionModal({ playerId, onClose, onSuccess }: Props)
           duration_minutes: parseInt(formData.duration_minutes),
           notes: formData.notes,
           session_date: sessionDateIso,
+          exercise_type: formData.exercise_type,
         },
       ]);
 
@@ -173,6 +175,29 @@ export default function AddSessionModal({ playerId, onClose, onSuccess }: Props)
                     {map}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-zinc-300 text-sm font-semibold mb-2">
+                TYPE D'EXERCICE
+              </label>
+              <select
+                name="exercise_type"
+                value={formData.exercise_type}
+                onChange={handleChange}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-md py-3 px-4 text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
+                required
+              >
+                <option value="">Sélectionner un exercice</option>
+                <option value="aim_training">Aim Training</option>
+                <option value="spray_control">Spray Control</option>
+                <option value="movement">Movement</option>
+                <option value="positioning">Positioning</option>
+                <option value="game_sense">Game Sense</option>
+                <option value="clutch">Clutch</option>
+                <option value="retake">Retake</option>
+                <option value="deathmatch">Deathmatch</option>
               </select>
             </div>
 

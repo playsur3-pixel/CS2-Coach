@@ -22,6 +22,7 @@ export default function AddPlayerModal({ onClose, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [profilesLoading, setProfilesLoading] = useState(true);
+  const [manualName, setManualName] = useState('');
 
   useEffect(() => {
     // Try to load registered users from a public profiles table
@@ -55,14 +56,14 @@ export default function AddPlayerModal({ onClose, onSuccess }: Props) {
     setError('');
     setLoading(true);
 
-    if (!selectedProfileId) {
-      setError('Sélectionnez un joueur existant dans la liste.');
+    if (!selectedProfileId && !manualName.trim()) {
+      setError('Sélectionnez un joueur existant ou saisissez un nom de joueur.');
       setLoading(false);
       return;
     }
 
     const selected = profiles.find((p) => p.id === selectedProfileId);
-    const playerName = selected?.username || selected?.email || 'Unknown Player';
+    const playerName = manualName.trim() || selected?.username || selected?.email || 'Unknown Player';
 
     const { error: insertError } = await supabase
       .from('players')
@@ -112,28 +113,51 @@ export default function AddPlayerModal({ onClose, onSuccess }: Props) {
             </label>
             {profilesLoading ? (
               <div className="text-zinc-400 text-sm">Chargement des utilisateurs…</div>
+            ) : profiles.length === 0 ? (
+              <>
+                <input
+                  type="text"
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-md py-3 px-4 text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
+                  placeholder="Saisissez le nom du joueur (ex: demo)"
+                />
+                <p className="text-xs text-zinc-500 mt-2">
+                  Aucun utilisateur listé. Saisissez manuellement le nom du joueur.
+                </p>
+              </>
             ) : (
-              <select
-                value={selectedProfileId}
-                onChange={(e) => setSelectedProfileId(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-md py-3 px-4 text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
-                required
-              >
-                {profiles.length === 0 ? (
-                  <option value="">Aucun utilisateur trouvé</option>
-                ) : (
-                  profiles.map((p) => (
+              <>
+                <select
+                  value={selectedProfileId}
+                  onChange={(e) => setSelectedProfileId(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-md py-3 px-4 text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
+                >
+                  {profiles.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.username || p.email || p.id}
                     </option>
-                  ))
-                )}
-              </select>
+                  ))}
+                </select>
+                <p className="text-xs text-zinc-500 mt-2">
+                  Ou laissez vide et saisissez un nom ci-dessous.
+                </p>
+              </>
             )}
-            <p className="text-xs text-zinc-500 mt-2">
-              Seuls les utilisateurs déjà inscrits peuvent être ajoutés comme joueurs.
-            </p>
           </div>
+
+          {profiles.length > 0 && (
+            <div className="mb-6">
+              <label className="block text-zinc-300 text-sm font-semibold mb-2">NOM DU JOUEUR (optionnel)</label>
+              <input
+                type="text"
+                value={manualName}
+                onChange={(e) => setManualName(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-md py-3 px-4 text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
+                placeholder="Saisissez un alias à afficher"
+              />
+            </div>
+          )}
 
           <div className="flex gap-3">
             <button
@@ -145,7 +169,7 @@ export default function AddPlayerModal({ onClose, onSuccess }: Props) {
             </button>
             <button
               type="submit"
-              disabled={loading || profilesLoading || profiles.length === 0}
+              disabled={loading || profilesLoading || (!selectedProfileId && !manualName.trim())}
               className="flex-1 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white py-3 px-4 rounded-md transition shadow-lg shadow-orange-600/20 font-semibold disabled:opacity-50"
             >
               {loading ? 'AJOUT…' : 'AJOUTER'}

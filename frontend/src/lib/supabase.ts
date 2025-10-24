@@ -40,5 +40,6 @@ export type TrainingSession = {
   map_name: string;
   duration_minutes: number;
   notes: string;
+  exercise_type: string;
   created_at: string;
 };

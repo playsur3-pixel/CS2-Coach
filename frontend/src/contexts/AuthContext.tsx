@@ -51,12 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, metadata?: Record<string, any>) => {
+    const mergedMetadata = { role: 'player', ...(metadata || {}) };
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
-        data: metadata,
+        data: mergedMetadata,
       },
     });
     return { error };

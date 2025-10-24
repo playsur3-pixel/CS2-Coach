@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, Player, TrainingSession } from '../lib/supabase';
-import { Crosshair, Target, Activity, TrendingUp, Plus, LogOut, Users } from 'lucide-react';
+import { Crosshair, Target, Activity, TrendingUp, Plus, LogOut, Users, Eye, MessageCircle } from 'lucide-react';
 import AddSessionModal from './AddSessionModal';
 import AddPlayerModal from './AddPlayerModal';
 import ResultsChart from './ResultsChart';
 import EditSessionModal from './EditSessionModal';
+import PlayerPage from './PlayerPage';
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -16,7 +17,11 @@ export default function Dashboard() {
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState<'hs_rate' | 'accuracy' | 'kills' | 'deaths' | 'duration_minutes' | 'kd'>('hs_rate');
+  const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
   const [editSessionId, setEditSessionId] = useState<string | null>(null);
+  const [showPlayerPage, setShowPlayerPage] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
+  const uniqueExercises = Array.from(new Set(sessions.map(s => s.exercise_type).filter(Boolean))) as string[];
 
   useEffect(() => {
     loadPlayers();
@@ -70,6 +75,16 @@ export default function Dashboard() {
 
   const selectedPlayerData = players.find(p => p.id === selectedPlayer);
 
+  // Si on affiche la page joueur
+  if (showPlayerPage && selectedPlayerData) {
+    return (
+      <PlayerPage 
+        player={selectedPlayerData} 
+        onBack={() => setShowPlayerPage(false)} 
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen relative flex items-center justify-center overflow-hidden">
@@ -100,6 +115,15 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-zinc-400 text-sm">{user?.email}</span>
+              {selectedPlayer && (
+                <button
+                  onClick={() => setShowMessage(true)}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md flex items-center gap-2 transition"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Message</span>
+                </button>
+              )}
               <button
                 onClick={signOut}
                 className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded-md flex items-center gap-2 transition"
@@ -129,6 +153,15 @@ export default function Dashboard() {
                   </option>
                 ))}
               </select>
+              {selectedPlayer && (
+                <button
+                  onClick={() => setShowPlayerPage(true)}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md flex items-center gap-2 transition shadow-lg shadow-blue-600/30"
+                >
+                  <Eye className="w-5 h-5" />
+                  <span>Voir profil</span>
+                </button>
+              )}
               <button
                 onClick={() => setShowAddPlayer(true)}
                 className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-md flex items-center gap-2 transition shadow-lg shadow-orange-600/30"
@@ -219,11 +252,26 @@ export default function Dashboard() {
                       <option value="duration_minutes">Durée (min)</option>
                       <option value="kd">K/D</option>
                     </select>
+                    {uniqueExercises.length > 0 && (
+                      <>
+                        <label className="text-sm text-zinc-400 ml-3">Exercice</label>
+                        <select
+                          value={selectedExercise || ''}
+                          onChange={(e) => setSelectedExercise(e.target.value || null)}
+                          className="bg-zinc-900 border border-zinc-800 text-white text-sm rounded-md px-2 py-1"
+                        >
+                          <option value="">Tous</option>
+                          {uniqueExercises.map(ex => (
+                            <option key={ex} value={ex}>{ex}</option>
+                          ))}
+                        </select>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 {/* Chart */}
-                <ResultsChart sessions={sessions} metric={selectedMetric} />
+                <ResultsChart sessions={sessions} metric={selectedMetric} exerciseType={selectedExercise || undefined} />
 
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -231,6 +279,7 @@ export default function Dashboard() {
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">Date</th>
                         <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">Map</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">Exercice</th>
                         <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">HS Rate</th>
                         <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">K/D</th>
                         <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">Accuracy</th>
@@ -241,7 +290,7 @@ export default function Dashboard() {
                     <tbody className="divide-y divide-zinc-800">
                       {sessions.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="px-6 py-8 text-center text-zinc-500">
+                          <td colSpan={8} className="px-6 py-8 text-center text-zinc-500">
                             No training sessions yet. Click "New Session" to add one.
                           </td>
                         </tr>
@@ -253,6 +302,9 @@ export default function Dashboard() {
                             </td>
                             <td className="px-6 py-4 text-sm text-zinc-300 font-medium">
                               {session.map_name}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-zinc-300 font-medium">
+                              {session.exercise_type || '-'}
                             </td>
                             <td className="px-6 py-4 text-sm">
                               <span className="text-orange-400 font-semibold">{session.hs_rate}%</span>
@@ -330,6 +382,47 @@ export default function Dashboard() {
             setShowAddPlayer(false);
           }}
         />
+      )}
+
+      {/* Message modal */}
+      {showMessage && selectedPlayerData && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-zinc-950/90 backdrop-blur-xl border-2 border-zinc-800/50 rounded-lg shadow-2xl shadow-black/50 w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-zinc-800">
+              <div className="flex items-center gap-3">
+                <MessageCircle className="w-6 h-6 text-blue-500" />
+                <h2 className="text-xl font-bold text-white">Message à {selectedPlayerData.player_name}</h2>
+              </div>
+              <button
+                onClick={() => setShowMessage(false)}
+                className="text-zinc-400 hover:text-white transition"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6">
+              <textarea
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-md py-3 px-4 text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition resize-none"
+                rows={4}
+                placeholder="Tapez votre message..."
+              />
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => setShowMessage(false)}
+                  className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white py-2 px-4 rounded-md transition"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => setShowMessage(false)}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-md transition"
+                >
+                  Envoyer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
