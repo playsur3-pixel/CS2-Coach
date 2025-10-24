@@ -43,7 +43,7 @@ export default function InviteSignup() {
       setError('Veuillez saisir un nom de joueur');
       return;
     }
-    const { error } = await signUp(invitation.email, password, { playerName, role: 'player' });
+    const { error } = await signUp(invitation.email, password, { playerName, role: 'player', account_type: 'player' });
     if (error) {
       setError(error.message || String(error));
       return;
@@ -162,6 +162,14 @@ export default function InviteSignup() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                   <input type="email" value={invitation.email} readOnly className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-md py-3 pl-11 pr-4 text-white opacity-70" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-zinc-300 text-sm font-semibold mb-2">TYPE DE COMPTE</label>
+                <div className="relative">
+                  <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                  <input type="text" value="Joueur" readOnly className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-md py-3 pl-11 pr-4 text-white opacity-70" />
+                </div>
+                <p className="text-xs text-zinc-500 mt-1">Défini par défaut et non modifiable</p>
               </div>
               <div>
                 <label className="block text-zinc-300 text-sm font-semibold mb-2">NOM DE JOUEUR</label>

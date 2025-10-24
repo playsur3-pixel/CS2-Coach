@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, Player, TrainingSession } from '../lib/supabase';
-import { Crosshair, Target, Activity, TrendingUp, Plus, LogOut, Users, Eye, MessageCircle } from 'lucide-react';
+import { Crosshair, Target, Activity, TrendingUp, Plus, LogOut, Users, Eye, MessageCircle, Mail } from 'lucide-react';
 import AddSessionModal from './AddSessionModal';
 import AddPlayerModal from './AddPlayerModal';
 import ResultsChart from './ResultsChart';
@@ -24,11 +24,53 @@ export default function Dashboard() {
   const [showPlayerPage, setShowPlayerPage] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const uniqueExercises = Array.from(new Set(sessions.map(s => s.exercise_type).filter(Boolean))) as string[];
-  const role = (user?.app_metadata as any)?.role || (user?.user_metadata as any)?.role || null;
+  const roleRaw = (user?.app_metadata as any)?.role || (user?.user_metadata as any)?.role || null;
+  const role = roleRaw ? String(roleRaw) : null;
+  const [canInvite, setCanInvite] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
+  // Normalise et déduit la capacité d'inviter depuis différents endroits (métadatas, table profiles, Website_Users)
   useEffect(() => {
-    if (role && (role === 'admin' || role === 'coach') && user?.id) {
+    (async () => {
+      let allowed = false;
+      if (role) {
+        const rn = role.toLowerCase();
+        if (rn === 'admin' || rn === 'coach' || rn === 'administrateur' || rn === 'entraineur') {
+          allowed = true;
+        }
+      }
+      try {
+        if (user?.id) {
+          const { data: profs } = await supabase
+            .from('profiles')
+            .select('account_type')
+            .eq('id', user.id)
+            .limit(1);
+          const acc = profs?.[0]?.account_type;
+          if (acc && ['admin', 'coach', 'administrateur', 'entraineur'].includes(String(acc).toLowerCase())) {
+            allowed = true;
+          }
+        }
+      } catch {}
+      try {
+        if (user?.email) {
+          const { data: w } = await supabase
+            .from('Website_Users')
+            .select('account_type')
+            .eq('email', user.email)
+            .limit(1);
+          const accW = w?.[0]?.account_type;
+          if (accW && ['admin', 'coach', 'administrateur', 'entraineur'].includes(String(accW).toLowerCase())) {
+            allowed = true;
+          }
+        }
+      } catch {}
+      setCanInvite(allowed);
+    })();
+  }, [role, user?.id, user?.email]);
+
+  useEffect(() => {
+    if (canInvite && user?.id) {
       (async () => {
         try {
           const res = await fetch(`/api/notifications?recipient=${user.id}`);
@@ -37,7 +79,7 @@ export default function Dashboard() {
         } catch {}
       })();
     }
-  }, [role, user?.id]);
+  }, [canInvite, user?.id]);
 
   async function approveRenewal(invitationId: string) {
     try {
@@ -153,6 +195,15 @@ export default function Dashboard() {
                   <span>Message</span>
                 </button>
               )}
+              {canInvite && (
+                <button
+                  onClick={() => setShowInviteModal(true)}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>Invitation par mail</span>
+                </button>
+              )}
               <button
                 onClick={signOut}
                 className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded-md flex items-center gap-2 transition"
@@ -196,9 +247,9 @@ export default function Dashboard() {
                 className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-md flex items-center gap-2 transition shadow-lg shadow-orange-600/30"
               >
                 <Plus className="w-5 h-5" />
-                <span>Ajouter un joueur</span>
+                <span>Recherche de joueurs</span>
               </button>
-              {role && (role === 'admin' || role === 'coach') && (
+              {canInvite && (
                 <button
                   onClick={() => setShowInviteModal(true)}
                   className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition"
@@ -220,7 +271,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          {role && (role === 'admin' || role === 'coach') && notifications.length > 0 && (
+          {canInvite && notifications.length > 0 && (
             <div className="mb-8 bg-zinc-950/80 backdrop-blur-xl border-2 border-zinc-800/50 rounded-lg p-4 shadow-xl">
               <h3 className="text-white font-bold mb-3">Demandes d'invitation</h3>
               <div className="space-y-3">
@@ -401,7 +452,7 @@ export default function Dashboard() {
                 className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-3 rounded-md inline-flex items-center gap-2 transition shadow-lg shadow-orange-600/30"
               >
                 <Plus className="w-5 h-5" />
-                <span>Add Your First Player</span>
+                <span>Recherche de joueurs</span>
               </button>
             </div>
           )}
