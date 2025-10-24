@@ -4,6 +4,8 @@ import { supabase, Player, TrainingSession } from '../lib/supabase';
 import { Crosshair, Target, Activity, TrendingUp, Plus, LogOut, Users } from 'lucide-react';
 import AddSessionModal from './AddSessionModal';
 import AddPlayerModal from './AddPlayerModal';
+import ResultsChart from './ResultsChart';
+import EditSessionModal from './EditSessionModal';
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -13,6 +15,8 @@ export default function Dashboard() {
   const [showAddSession, setShowAddSession] = useState(false);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedMetric, setSelectedMetric] = useState<'hs_rate' | 'accuracy' | 'kills' | 'deaths' | 'duration_minutes' | 'kd'>('hs_rate');
+  const [editSessionId, setEditSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     loadPlayers();
@@ -28,6 +32,7 @@ export default function Dashboard() {
     const { data } = await supabase
       .from('players')
       .select('*')
+      .eq('user_id', user?.id)
       .order('created_at', { ascending: false });
 
     if (data) {
@@ -129,7 +134,7 @@ export default function Dashboard() {
                 className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-md flex items-center gap-2 transition shadow-lg shadow-orange-600/30"
               >
                 <Plus className="w-5 h-5" />
-                <span>Add Player</span>
+                <span>Ajouter un joueur</span>
               </button>
             </div>
 
@@ -139,7 +144,7 @@ export default function Dashboard() {
                 className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white px-6 py-2 rounded-md flex items-center gap-2 transition shadow-lg shadow-orange-600/20 font-semibold"
               >
                 <Plus className="w-5 h-5" />
-                <span>New Session</span>
+                <span>Nouvelle séance</span>
               </button>
             )}
           </div>
@@ -193,12 +198,32 @@ export default function Dashboard() {
               </div>
 
               <div className="bg-zinc-950/80 backdrop-blur-xl border-2 border-zinc-800/50 rounded-lg shadow-xl shadow-black/30">
-                <div className="p-6 border-b border-zinc-800">
-                  <h2 className="text-xl font-bold text-white">Training Sessions</h2>
-                  <p className="text-zinc-400 text-sm mt-1">
-                    {selectedPlayerData?.player_name}'s performance history
-                  </p>
+                <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Training Sessions</h2>
+                    <p className="text-zinc-400 text-sm mt-1">
+                      {selectedPlayerData?.player_name}'s performance history
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-zinc-400">Métrique</label>
+                    <select
+                      value={selectedMetric}
+                      onChange={(e) => setSelectedMetric(e.target.value as any)}
+                      className="bg-zinc-900 border border-zinc-800 text-white text-sm rounded-md px-2 py-1"
+                    >
+                      <option value="hs_rate">HS Rate</option>
+                      <option value="accuracy">Accuracy</option>
+                      <option value="kills">Kills</option>
+                      <option value="deaths">Deaths</option>
+                      <option value="duration_minutes">Durée (min)</option>
+                      <option value="kd">K/D</option>
+                    </select>
+                  </div>
                 </div>
+
+                {/* Chart */}
+                <ResultsChart sessions={sessions} metric={selectedMetric} />
 
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -210,6 +235,7 @@ export default function Dashboard() {
                         <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">K/D</th>
                         <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">Accuracy</th>
                         <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">Duration</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-800">
@@ -239,6 +265,14 @@ export default function Dashboard() {
                             </td>
                             <td className="px-6 py-4 text-sm text-zinc-300">
                               {session.duration_minutes}m
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-300">
+                              <button
+                                className="text-orange-500 hover:text-orange-400 underline"
+                                onClick={() => setEditSessionId(session.id)}
+                              >
+                                Éditer
+                              </button>
                             </td>
                           </tr>
                         ))
@@ -272,6 +306,18 @@ export default function Dashboard() {
           onSuccess={() => {
             loadSessions(selectedPlayer);
             setShowAddSession(false);
+          }}
+        />
+      )}
+
+      {/* Edit session modal */}
+      {editSessionId && (
+        <EditSessionModal
+          sessionId={editSessionId}
+          onClose={() => setEditSessionId(null)}
+          onSuccess={() => {
+            if (selectedPlayer) loadSessions(selectedPlayer);
+            setEditSessionId(null);
           }}
         />
       )}

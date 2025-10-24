@@ -1,13 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Crosshair, Mail, Lock, AlertCircle } from "lucide-react";
 
 export default function Auth() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => {
+    try {
+      return localStorage.getItem("lastEmail") ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
+
+  useEffect(() => {
+    // Met à jour le localStorage au fil de la saisie pour faciliter la prochaine connexion
+    try {
+      localStorage.setItem("lastEmail", email);
+    } catch {}
+  }, [email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

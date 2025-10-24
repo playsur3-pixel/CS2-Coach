@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { X, Users } from 'lucide-react';
@@ -8,22 +8,69 @@ type Props = {
   onSuccess: () => void;
 };
 
+// Minimal profile type for dropdown
+type ProfileItem = {
+  id: string;
+  email?: string | null;
+  username?: string | null;
+};
+
 export default function AddPlayerModal({ onClose, onSuccess }: Props) {
   const { user } = useAuth();
-  const [playerName, setPlayerName] = useState('');
+  const [profiles, setProfiles] = useState<ProfileItem[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [profilesLoading, setProfilesLoading] = useState(true);
+
+  useEffect(() => {
+    // Try to load registered users from a public profiles table
+    // Expect a table named 'profiles' with at least: id, email, username
+    (async () => {
+      setProfilesLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, username')
+        .order('email', { ascending: true });
+
+      if (error) {
+        // If table does not exist or RLS forbids read, show a helpful message
+        setError(
+          "Impossible de charger la liste des utilisateurs. Vérifiez la table 'profiles' et les droits de lecture (RLS)."
+        );
+        setProfilesLoading(false);
+        return;
+      }
+
+      setProfiles(data || []);
+      if (data && data.length > 0) {
+        setSelectedProfileId(data[0].id);
+      }
+      setProfilesLoading(false);
+    })();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
+    if (!selectedProfileId) {
+      setError('Sélectionnez un joueur existant dans la liste.');
+      setLoading(false);
+      return;
+    }
+
+    const selected = profiles.find((p) => p.id === selectedProfileId);
+    const playerName = selected?.username || selected?.email || 'Unknown Player';
+
     const { error: insertError } = await supabase
       .from('players')
       .insert([
         {
           user_id: user?.id,
+          // We keep the current schema: store the chosen user's display as player_name
+          // If you later add a column player_user_id (FK to profiles.id), we can insert it too
           player_name: playerName,
         },
       ]);
@@ -42,7 +89,7 @@ export default function AddPlayerModal({ onClose, onSuccess }: Props) {
         <div className="flex items-center justify-between p-6 border-b border-zinc-800">
           <div className="flex items-center gap-3">
             <Users className="w-6 h-6 text-orange-500" />
-            <h2 className="text-xl font-bold text-white">Add New Player</h2>
+            <h2 className="text-xl font-bold text-white">Ajouter un joueur existant</h2>
           </div>
           <button
             onClick={onClose}
@@ -61,16 +108,31 @@ export default function AddPlayerModal({ onClose, onSuccess }: Props) {
 
           <div className="mb-6">
             <label className="block text-zinc-300 text-sm font-semibold mb-2">
-              PLAYER NAME
+              UTILISATEUR (inscrit sur le site)
             </label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-md py-3 px-4 text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
-              placeholder="Enter player name"
-              required
-            />
+            {profilesLoading ? (
+              <div className="text-zinc-400 text-sm">Chargement des utilisateurs…</div>
+            ) : (
+              <select
+                value={selectedProfileId}
+                onChange={(e) => setSelectedProfileId(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-md py-3 px-4 text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
+                required
+              >
+                {profiles.length === 0 ? (
+                  <option value="">Aucun utilisateur trouvé</option>
+                ) : (
+                  profiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.username || p.email || p.id}
+                    </option>
+                  ))
+                )}
+              </select>
+            )}
+            <p className="text-xs text-zinc-500 mt-2">
+              Seuls les utilisateurs déjà inscrits peuvent être ajoutés comme joueurs.
+            </p>
           </div>
 
           <div className="flex gap-3">
@@ -79,14 +141,14 @@ export default function AddPlayerModal({ onClose, onSuccess }: Props) {
               onClick={onClose}
               className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white py-3 px-4 rounded-md transition font-semibold"
             >
-              CANCEL
+              ANNULER
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || profilesLoading || profiles.length === 0}
               className="flex-1 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white py-3 px-4 rounded-md transition shadow-lg shadow-orange-600/20 font-semibold disabled:opacity-50"
             >
-              {loading ? 'ADDING...' : 'ADD PLAYER'}
+              {loading ? 'AJOUT…' : 'AJOUTER'}
             </button>
           </div>
         </form>

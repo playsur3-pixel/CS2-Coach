@@ -17,6 +17,7 @@ export default function AddSessionModal({ playerId, onClose, onSuccess }: Props)
     map_name: '',
     duration_minutes: '',
     notes: '',
+    session_date_local: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -25,6 +26,10 @@ export default function AddSessionModal({ playerId, onClose, onSuccess }: Props)
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    const sessionDateIso = formData.session_date_local
+      ? new Date(formData.session_date_local).toISOString()
+      : new Date().toISOString();
 
     const { error: insertError } = await supabase
       .from('training_sessions')
@@ -38,7 +43,7 @@ export default function AddSessionModal({ playerId, onClose, onSuccess }: Props)
           map_name: formData.map_name,
           duration_minutes: parseInt(formData.duration_minutes),
           notes: formData.notes,
-          session_date: new Date().toISOString(),
+          session_date: sessionDateIso,
         },
       ]);
 

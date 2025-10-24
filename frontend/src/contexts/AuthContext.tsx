@@ -6,7 +6,7 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, metadata?: Record<string, any>) => Promise<{ error: any }>;
   resendConfirmation: (email: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 };
@@ -25,7 +25,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       (async () => {
-        setUser(session?.user ?? null);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        // Ensure a profiles row exists/updated for the logged-in user
+        if (currentUser) {
+          try {
+            const username = (currentUser.user_metadata as any)?.playerName ?? null;
+            await supabase
+              .from('profiles')
+              .upsert({ id: currentUser.id, email: currentUser.email, username }, { onConflict: 'id' });
+          } catch (e) {
+            // Non-blocking: ignore errors if table/policies missing
+            console.warn('profiles upsert skipped:', (e as any)?.message ?? e);
+          }
+        }
       })();
     });
 
@@ -37,12 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, metadata?: Record<string, any>) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
+        data: metadata,
       },
     });
     return { error };

@@ -37,11 +37,15 @@ export default function SignUp() {
       return;
     }
 
-    const { error } = await signUp(email, password);
+    const { error } = await signUp(email, password, { playerName });
 
     if (error) {
       setError(error.message);
     } else {
+      // Stocke l'email pour le préremplissage à la connexion
+      try {
+        localStorage.setItem('lastEmail', email);
+      } catch {}
       setSuccess("Compte créé avec succès ! Vérifiez votre email pour confirmer votre compte.");
     }
 
