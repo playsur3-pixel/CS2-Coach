@@ -74,7 +74,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      if (error) throw error;
+    } catch (_) {
+      await supabase.auth.signOut({ scope: 'local' });
+    }
   };
 
   return (

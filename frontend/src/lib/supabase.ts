@@ -21,7 +21,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Missing Supabase configuration. Check frontend/.env");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  global: {
+    headers: {
+      apikey: supabaseAnonKey,
+    },
+  },
+});
 
 export type Player = {
   id: string;
