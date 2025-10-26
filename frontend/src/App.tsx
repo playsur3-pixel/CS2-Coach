@@ -8,6 +8,7 @@ import AdminDashboard from '../assets/AdminDashboard';
 import CoachDashboard from './components/CoachDashboard';
 import PlayerPage from './components/PlayerPage';
 import { Player } from './lib/supabase';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
   const { user } = useAuth();
@@ -16,6 +17,11 @@ function App() {
   // Page d'inscription via invitation
   if (path.startsWith('/invite/')) {
     return <InviteSignup />;
+  }
+
+  // Reset password public route (accessible sans auth)
+  if (path === '/reset-password') {
+    return <ResetPassword />;
   }
 
   if (!user) {
