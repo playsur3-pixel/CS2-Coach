@@ -4,6 +4,7 @@ import Dashboard from "./components/Dashboard";
 import SignUp from "./components/SignUp";
 import Profile from "./components/Profile";
 import InviteSignup from "./components/InviteSignup";
+import ResetPassword from "./components/ResetPassword";
 import AdminDashboard from "../assets/AdminDashboard";
 import CoachDashboard from "./components/CoachDashboard";
 import PlayerPage from "./components/PlayerPage";
@@ -16,6 +17,11 @@ function App() {
   // Page d'inscription via invitation
   if (path.startsWith("/invite/")) {
     return <InviteSignup />;
+  }
+
+  // Page de réinitialisation de mot de passe (accessible sans authentification)
+  if (path === "/reset-password") {
+    return <ResetPassword />;
   }
 
   if (!user) {
