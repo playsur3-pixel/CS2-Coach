@@ -5,16 +5,14 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
+  // ✅ On marque la fonction async
   const handleForgotPassword = async () => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://cs2-coaching.netlify.app/reset-password", // 👈 ICI
+      redirectTo: "https://cs2-coaching.netlify.app/reset-password", // 👈 redirection correcte
     });
 
-    if (error) setMessage("❌ " + error.message);
-    else
-      setMessage(
-        "📩 Un lien de réinitialisation a été envoyé à votre adresse e-mail !"
-      );
+    if (error) setMessage("❌ Erreur : " + error.message);
+    else setMessage("📩 Un e-mail de réinitialisation a été envoyé !");
   };
 
   return (
