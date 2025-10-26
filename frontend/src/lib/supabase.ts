@@ -54,3 +54,11 @@ export type TrainingSession = {
   exercise_type: string;
   created_at: string;
 };
+
+export type Profile = {
+  id: string;
+  email: string;
+  username?: string | null;
+  account_type: string;
+  created_at: string;
+};
